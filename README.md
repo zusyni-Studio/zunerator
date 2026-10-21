@@ -12,7 +12,7 @@
 [![Version](https://img.shields.io/badge/version-2.4_PRO-black?style=for-the-badge)](#)
 [![Status](https://img.shields.io/badge/status-online-10b981?style=for-the-badge)](#)
 [![Design](https://img.shields.io/badge/design-brutalist--modern-e11d48?style=for-the-badge)](#)
-[![AI](https://img.shields.io/badge/AI-assistant--enabled-6366f1?style=for-the-badge)](#)
+[![Backend](https://img.shields.io/badge/backend-node.js-0f172a?style=for-the-badge)](#)
 [![License](https://img.shields.io/badge/license-proprietary-0f172a?style=for-the-badge)](#)
 
 <p align="center">
@@ -30,7 +30,7 @@
 
 Alih-alih menyajikan formulir panjang yang membingungkan, ZUNERATOR menggunakan alur **Wizard 4 Langkah** yang memandu pengguna secara linear dari awal hingga akhir. Setiap langkah dirancang agar hanya menampilkan informasi yang relevan, sehingga pengguna tidak pernah merasa tersesat.
 
-Lebih dari sekadar formulir aktivasi, ZUNERATOR juga dilengkapi dengan **AIHELP Assistant**, sebuah asisten virtual cerdas yang siap menjawab pertanyaan, memandu penggunaan, dan memberikan solusi atas kendala pengguna kapan saja tanpa perlu menunggu tim dukungan manusia.
+Lebih dari sekadar formulir aktivasi, ZUNERATOR juga dilengkapi dengan **AIHELP Assistant**, asisten virtual cerdas yang siap menjawab pertanyaan, memandu penggunaan, dan memberikan solusi atas kendala pengguna kapan saja tanpa perlu menunggu tim dukungan manusia.
 
 ---
 
@@ -62,9 +62,7 @@ Pendekatan ini menghasilkan antarmuka yang:
 ## Fitur Utama
 
 ### 1. Wizard Aktivasi 4 Langkah
-
 Alur linear yang membimbing pengguna dari awal hingga akhir:
-
 1. **Kirim Link** — Pengguna memasukkan alamat email target.
 2. **Cek Email** — Instruksi jelas untuk membuka kotak masuk dan menyalin tautan.
 3. **Verifikasi** — Menempelkan tautan untuk mengaktifkan lisensi.
@@ -73,42 +71,119 @@ Alur linear yang membimbing pengguna dari awal hingga akhir:
 Setiap langkah hanya menampilkan elemen yang relevan, dengan indikator progres visual yang bergerak seiring pengguna menyelesaikan setiap tahapan.
 
 ### 2. AIHELP Assistant
-
 Asisten virtual berbasis AI yang dapat diakses kapan saja melalui tombol mengambang di sudut kanan bawah. AIHELP dirancang untuk:
-
 - Menjawab pertanyaan umum seputar proses aktivasi.
 - Memberikan panduan langkah demi langkah jika pengguna bingung.
 - Menjelaskan istilah teknis dengan bahasa yang mudah dipahami.
 - Mengarahkan pengguna ke kontak dukungan manusia jika diperlukan.
 
 ### 3. Terminal Log
-
-Panel visual yang menampilkan status sistem secara langsung. Pengguna dapat melihat setiap respons sistem dalam format *monospace*, meniru pengalaman menggunakan *command line*. Log ini membantu pengguna memahami apa yang sedang terjadi di balik layar.
+Panel visual yang menampilkan status sistem secara langsung. Pengguna dapat melihat setiap respons sistem dalam format *monospace*, meniru pengalaman menggunakan *command line*.
 
 ### 4. Struk Digital
-
-Setelah aktivasi berhasil, pengguna menerima struk digital yang berisi rincian akun, status lisensi, dan masa aktif. Struk ini dapat dijadikan bukti sah aktivasi dan disimpan untuk keperluan verifikasi di masa mendatang.
+Setelah aktivasi berhasil, pengguna menerima struk digital yang berisi rincian akun, status lisensi, dan masa aktif. Struk ini dapat dijadikan bukti sah aktivasi.
 
 ### 5. Fully Responsive
+Tata letak dioptimalkan untuk berbagai ukuran layar, mulai dari ponsel hingga monitor desktop.
 
-Tata letak dioptimalkan untuk berbagai ukuran layar, mulai dari ponsel hingga monitor desktop, tanpa mengorbankan estetika maupun fungsionalitas.
+---
+
+## Arsitektur Keamanan (Backend Proxy)
+
+Untuk mencegah pencurian API Key dan penyalahgunaan sistem, ZUNERATOR menggunakan arsitektur **Backend Proxy**. Seluruh logika komunikasi dengan layanan pihak ketiga disembunyikan di sisi server, tidak di-*expose* ke browser pengguna.
+
+### Alur Komunikasi
+
+```text
+[Browser Pengguna] 
+       ↓ (Request tanpa API Key)
+[Zunerator Frontend] 
+       ↓ (Fetch ke endpoint lokal)
+[Backend Proxy (Node.js/Vercel)] 
+       ↓ (Menyisipkan API Key secara rahasia)
+[API Gateway Provider]
+```
+
+Dengan pendekatan ini:
+- API Key tidak pernah dikirim ke browser.
+- Tidak ada kebocoran kredensial melalui *Inspect Element*.
+- Konfigurasi sistem dapat diubah tanpa mengubah kode frontend.
+
+---
+
+## Panduan Instalasi & Deployment
+
+### 1. Persiapan Frontend
+Unduh file `index.html` (aplikasi utama) dan pastikan tampilan UI berjalan dengan baik.
+
+### 2. Setup Backend Proxy (Node.js)
+Karena frontend membutuhkan perantara untuk mengamankan API Key, kita menggunakan Node.js yang di-*deploy* ke Vercel.
+
+Buat folder baru untuk backend, lalu siapkan tiga file berikut:
+
+**`package.json`**
+```json
+{
+  "name": "app",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  }
+}
+```
+
+**`vercel.json`**
+```json
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "index.js"
+    }
+  ]
+}
+```
+
+**`index.js`**
+*(Di sinilah seluruh logika API diletakkan. Kredensial disamarkan dan dipecah menjadi beberapa bagian untuk mencegah pembacaan langsung. Kode lengkapnya ada pada file `index.js` di repositori ini).*
+
+### 3. Deploy ke Vercel
+1. Upload ketiga file backend ke repositori GitHub.
+2. Hubungkan repositori tersebut ke Vercel.
+3. Klik **Deploy**. Vercel akan memberikan Anda URL publik (contoh: `https://zunerator-backend.vercel.app`).
+
+### 4. Menghubungkan Frontend ke Backend
+Di file frontend (`index.html`), ubah konfigurasi URL API agar mengarah ke URL Vercel backend Anda:
+
+```javascript
+const API_BASE = "https://zunerator-backend.vercel.app/api";
+```
+
+Setelah ini, seluruh proses aktivasi akan berjalan melalui proxy yang aman, dan API Key Anda tidak akan pernah ter-*expose* ke publik.
 
 ---
 
 ## Cara Menggunakan AIHELP Assistant
 
-AIHELP Assistant adalah fitur inti pada ZUNERATOR yang dirancang untuk membantu pengguna kapan saja. Berikut panduan penggunaannya:
+AIHELP Assistant adalah fitur inti pada ZUNERATOR yang dirancang untuk membantu pengguna kapan saja.
 
 ### Mengakses AIHELP
-
 1. Buka halaman ZUNERATOR di *browser* Anda.
 2. Perhatikan tombol bulat berwarna gelap di sudut kanan bawah halaman.
 3. Klik tombol tersebut untuk membuka jendela obrolan AIHELP.
 
 ### Bertanya kepada AIHELP
-
 Setelah jendela obrolan terbuka, Anda dapat langsung mengetik pertanyaan pada kolom input di bagian bawah. Contoh pertanyaan yang bisa diajukan:
-
 - "Bagaimana cara verifikasi link?"
 - "Mengapa saya tidak menerima email?"
 - "Apa itu magic link?"
@@ -116,17 +191,8 @@ Setelah jendela obrolan terbuka, Anda dapat langsung mengetik pertanyaan pada ko
 
 AIHELP akan merespons dalam hitungan detik dengan jawaban yang jelas dan terstruktur.
 
-### Menggunakan Tombol Cepat
-
-Selain mengetik manual, tersedia tombol pintas (*quick chips*) untuk pertanyaan yang sering diajukan, seperti:
-
-- **Cara Verifikasi** — Untuk menanyakan panduan verifikasi.
-- **Kontak Admin** — Untuk diarahkan ke kontak dukungan manusia jika diperlukan.
-
-### Kapan AIHELP Tidak Bisa Membantu?
-
+### Batasan AIHELP
 AIHELP memiliki batasan yang jelas untuk menjaga keamanan dan akurasi. AIHELP tidak akan:
-
 - Membagikan informasi sensitif atau kredensial sistem.
 - Melakukan tindakan atas nama pengguna tanpa persetujuan.
 - Mengklaim keberhasilan aktivasi yang tidak terverifikasi.
@@ -136,76 +202,7 @@ Jika AIHELP tidak dapat membantu, pengguna akan diarahkan secara otomatis ke kan
 
 ---
 
-## Cara Pembuatan AIHELP
-
-AIHELP bukanlah model AI yang dilatih dari nol oleh tim ZUNERATOR. Sebagai gantinya, AIHELP dibangun di atas **lapisan API kecerdasan buatan** yang telah teruji dan dikelola oleh penyedia layanan pihak ketiga.
-
-Berikut gambaran umum proses pembentukan AIHELP:
-
-### 1. Pemilihan Model Dasar
-
-Tim memilih model bahasa besar (*Large Language Model*) yang tersedia melalui API. Model ini telah dilatih oleh penyedia layanan dengan dataset berskala besar, sehingga memiliki pemahaman bahasa yang kuat sejak awal.
-
-### 2. Perancangan Perilaku AI
-
-Perilaku AIHELP tidak ditentukan melalui pelatihan ulang model, melainkan melalui **instruksi sistem** (*system prompt*) yang dirancang secara khusus. Instruksi ini mendefinisikan:
-
-- Identitas dan peran AIHELP sebagai asisten resmi ZUNERATOR.
-- Batasan topik yang boleh dibahas.
-- Gaya bahasa yang harus digunakan (profesional, ringkas, ramah).
-- Aturan keamanan yang tidak boleh dilanggar.
-- Pola penolakan yang sopan untuk permintaan yang tidak sesuai.
-
-Dengan pendekatan ini, AIHELP dapat mengikuti aturan yang ketat tanpa perlu proses *fine-tuning* yang mahal.
-
-### 3. Integrasi dengan Aplikasi
-
-Setiap pesan yang dikirim pengguna akan diteruskan ke layanan AI melalui lapisan integrasi. Lapisan ini bertanggung jawab untuk:
-
-- Mengirimkan pesan pengguna bersama instruksi sistem.
-- Menerima respons dari model AI.
-- Memvalidasi bahwa respons sesuai dengan aturan yang ditetapkan.
-- Menampilkan respons dalam format yang rapi kepada pengguna.
-
-### 4. Pengamanan Berlapis
-
-Untuk menjaga kualitas dan keamanan jawaban, AIHELP dilengkapi dengan beberapa lapisan pengamanan:
-
-- **Validasi Input** — Pesan pengguna diperiksa sebelum diteruskan.
-- **Penyaringan Output** — Respons AI diperiksa untuk mendeteksi klaim yang tidak berdasar.
-- **Kanal Eskalasi** — Jika AI ragu, pengguna diarahkan ke kontak manusia.
-
-### 5. Pemeliharaan dan Peningkatan
-
-AIHELP tidak bersifat statis. Instruksi sistem dan aturan perilaku dapat diperbarui seiring waktu untuk menyesuaikan dengan kebutuhan pengguna dan perkembangan layanan.
-
----
-
-## Panduan Penggunaan Website
-
-### Langkah 1 — Akses Halaman
-
-Buka ZUNERATOR melalui *browser* modern (Chrome, Safari, Edge, atau Firefox).
-
-### Langkah 2 — Mulai Aktivasi
-
-Pada halaman utama, form aktivasi sudah langsung tersedia. Masukkan alamat email yang terdaftar pada aplikasi Alight Motion.
-
-### Langkah 3 — Ikuti Instruksi
-
-Sistem akan mengirimkan tautan masuk ke email Anda. Buka kotak masuk, salin tautan tersebut, dan kembali ke halaman ZUNERATOR untuk menempelkannya pada kolom verifikasi.
-
-### Langkah 4 — Simpan Struk
-
-Setelah verifikasi berhasil, struk digital akan ditampilkan. Simpan struk tersebut sebagai bukti aktivasi.
-
-### Langkah 5 — Butuh Bantuan?
-
-Jika Anda mengalami kesulitan, klik tombol bulat di pojok kanan bawah untuk membuka AIHELP Assistant. Anda dapat mengajukan pertanyaan langsung dan menerima panduan secara *real-time*.
-
----
-
-## Panduan Visual
+## Panduan Visual Antarmuka
 
 | Area | Deskripsi |
 | :--- | :--- |
@@ -228,16 +225,22 @@ ZUNERATOR dirancang dengan prinsip-prinsip berikut:
 - **Transparansi Proses** — Setiap langkah ditampilkan secara jelas kepada pengguna.
 - **Validasi Berlapis** — Setiap input diperiksa sebelum diproses lebih lanjut.
 - **Pembatasan AI** — AIHELP tidak diizinkan membagikan informasi sensitif atau melakukan tindakan yang tidak sah.
-- **Kontinuitas Dukungan** — Jika proses gagal, pengguna diarahkan ke kanal bantuan resmi.
+- **Penyembunyian Kredensial** — Seluruh API Key dan konfigurasi sistem berada di sisi server, tidak di frontend.
 
 ---
 
-## Struktur Halaman
-```
+## Struktur Repositori
+
+```text
 zunerator/
-├── index.html       # Aplikasi utama
-└── README.md        # Dokumentasi proyek
+├── public/
+│   └── index.html       # Aplikasi utama (Frontend)
+├── index.js             # Logika Backend Proxy (API)
+├── package.json         # Dependensi backend
+├── vercel.json          # Konfigurasi routing
+└── README.md            # Dokumentasi proyek
 ```
+
 ---
 
 ## Kontak dan Dukungan
